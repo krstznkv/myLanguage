@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import Lexer from './classes/Lexer';
 import Parser from './classes/Parser';
+import UnarOperationNode from './classes/AST/UnarOperationNode';
 
 @Component({
   selector: 'app-root',
@@ -18,8 +19,10 @@ export class AppComponent {
     const lexer = new Lexer(code);
     try {
       lexer.lexAnalysis();
+      console.log(lexer.tokenList);
       const parser = new Parser(lexer.tokenList);
       const rootNode = parser.parseCode();
+      console.log(rootNode instanceof UnarOperationNode);
       parser.run(rootNode);
       this.console = parser.result;
       parser.result = '';
