@@ -31,4 +31,6 @@ export const tokenTypesList = {
     LESS: new TokenType('LESS', '^<'),
     MORE: new TokenType('MORE', '^>'),
     EQUALS: new TokenType('EQUALS', 'РАВНО'),
+    FLPAR: new TokenType('FLPAR', '^\\{'),
+    FRPAR: new TokenType('FRPAR', '^\\}'),
 };
