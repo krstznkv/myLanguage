@@ -33,4 +33,5 @@ export const tokenTypesList = {
     EQUALS: new TokenType('EQUALS', 'РАВНО'),
     FLPAR: new TokenType('FLPAR', '^\\{'),
     FRPAR: new TokenType('FRPAR', '^\\}'),
+    WHILE: new TokenType('WHILE', '^ПОКА'),
 };

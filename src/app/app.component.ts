@@ -17,6 +17,9 @@ export class AppComponent {
   run(code: string) {
     this.errorMess = '';
     const lexer = new Lexer(code);
+    while (true){
+      console.log('errro');
+    }
     try {
       lexer.lexAnalysis();
       console.log(lexer.tokenList);

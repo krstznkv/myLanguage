@@ -8,6 +8,7 @@ import BinOperationNode from './AST/BinOperationNode';
 import StatementsNode from './AST/StatementsNode';
 import {ConditionNode} from './AST/ConditionNode';
 import {ConditionBlock} from './AST/condition-block';
+import {LoopBlock} from './AST/loop-block';
 
 export default class Parser {
     tokens: Token[];
@@ -15,6 +16,7 @@ export default class Parser {
     scope: any = {};
     result = '';
     flag;
+    flagLoop;
     constructor(tokens: Token[]) {
         this.tokens = tokens;
     }
@@ -57,7 +59,6 @@ export default class Parser {
       throw new Error(`Ожидается переменная  на ${this.pos} позиции`);
     }
     parseCondition(): ConditionNode {
-       this.pos += 1;
        const leftNode = this.parseVariableOrNumber();
        const operator = this.match(tokenTypesList.EQUALS, tokenTypesList.LESS, tokenTypesList.MORE,
          tokenTypesList.LESS_EQ, tokenTypesList.MORE_EQ);
@@ -105,8 +106,25 @@ export default class Parser {
         }
         return leftNode;
     }
-
-     parseExpression(): ExpressionNode {
+    parseConditionBlock(): ConditionBlock {
+      this.pos += 1;
+      const conditionNode = this.parseCondition();
+      const conditionBlock = new ConditionBlock(conditionNode);
+      this.require(tokenTypesList.FLPAR);
+      while (this.match(tokenTypesList.FRPAR) === null){
+        conditionBlock.add(this.parseExpression());
+        this.require(tokenTypesList.SEMICOLON);
+      }
+      if (this.match(tokenTypesList.ELSE) != null){
+        this.require(tokenTypesList.FLPAR);
+        while (this.match(tokenTypesList.FRPAR) === null){
+          conditionBlock.addElse(this.parseExpression());
+          this.require(tokenTypesList.SEMICOLON);
+        }
+      }
+      return conditionBlock;
+    }
+    parseExpression(): ExpressionNode {
       if (this.match(tokenTypesList.LOG) != null){
         console.log('0' + this.pos);
         this.pos -= 1;
@@ -123,21 +141,19 @@ export default class Parser {
       if (this.match(tokenTypesList.IF) != null){
         console.log('if');
         this.pos -= 1;
+        const conditionBlock = this.parseConditionBlock();
+        return conditionBlock;
+      }
+      if (this.match(tokenTypesList.WHILE) != null){
+        console.log('while');
         const conditionNode = this.parseCondition();
-        const conditionBlock = new ConditionBlock(conditionNode);
+        const loopBlock = new LoopBlock(conditionNode);
         this.require(tokenTypesList.FLPAR);
         while (this.match(tokenTypesList.FRPAR) === null){
-          conditionBlock.add(this.parseExpression());
+          loopBlock.add(this.parseExpression());
           this.require(tokenTypesList.SEMICOLON);
         }
-        if (this.match(tokenTypesList.ELSE) != null){
-          this.require(tokenTypesList.FLPAR);
-          while (this.match(tokenTypesList.FRPAR) === null){
-            conditionBlock.addElse(this.parseExpression());
-            this.require(tokenTypesList.SEMICOLON);
-          }
-        }
-        return conditionBlock;
+        return loopBlock;
       }
       console.log('3');
       const variableNode = this.parseVariableOrNumber();
@@ -235,6 +251,62 @@ export default class Parser {
            return;
          }
       }
+        if (node instanceof LoopBlock){
+          const leftNode = node.conditionNode.leftNode;
+          const rightNode = node.conditionNode.rightNode;
+          const operator = node.conditionNode.operator;
+          switch (operator.type.name){
+            case tokenTypesList.MORE.name:
+              this.flagLoop = this.run(leftNode) > this.run(rightNode);
+              while (this.flagLoop){
+                for (const exp of node.expressions){
+                  this.run(exp);
+                }
+                this.flagLoop = this.run(leftNode) > this.run(rightNode);
+              }
+              return;
+              break;
+            case tokenTypesList.LESS.name:
+              this.flagLoop = this.run(leftNode) < this.run(rightNode);
+              while (this.flagLoop){
+                for (const exp of node.expressions){
+                  this.run(exp);
+                }
+                this.flagLoop = this.run(leftNode) < this.run(rightNode);
+              }
+              return;
+              break;
+            case tokenTypesList.EQUALS.name:
+              this.flagLoop = this.run(leftNode) === this.run(rightNode);
+              while (this.flagLoop){
+                for (const exp of node.expressions){
+                  this.run(exp);
+                }
+                this.flagLoop = this.run(leftNode) === this.run(rightNode);
+              }
+              return;
+              break;
+            case tokenTypesList.MORE_EQ.name:
+              this.flagLoop = this.run(leftNode) >= this.run(rightNode);
+              while (this.flagLoop){
+                for (const exp of node.expressions){
+                  this.run(exp);
+                }
+                this.flagLoop = this.run(leftNode) >= this.run(rightNode);
+              }
+              break;
+            case tokenTypesList.LESS_EQ.name:
+              this.flagLoop = this.run(leftNode) <= this.run(rightNode);
+              while (this.flagLoop){
+                for (const exp of node.expressions){
+                  this.run(exp);
+                }
+                this.flagLoop = this.run(leftNode) <= this.run(rightNode);
+              }
+              return;
+              break;
+          }
+        }
         if (node instanceof StatementsNode) {
             node.codeStrings.forEach(codeString => {
                 this.run(codeString);
